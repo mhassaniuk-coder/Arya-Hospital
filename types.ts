@@ -132,6 +132,53 @@ export interface BloodUnit {
   status: 'Low' | 'Adequate' | 'Critical';
 }
 
+export interface BloodBag {
+  id: string;
+  bloodGroup: 'A+' | 'A-' | 'B+' | 'B-' | 'AB+' | 'AB-' | 'O+' | 'O-';
+  donorId: string;
+  donorName: string;
+  collectionDate: string;
+  expiryDate: string;
+  volume: number; // in ml
+  status: 'Available' | 'Reserved' | 'Used' | 'Expired' | 'Discarded';
+  location: string; // storage location
+}
+
+export interface BloodDonor {
+  id: string;
+  name: string;
+  age: number;
+  gender: string;
+  bloodGroup: 'A+' | 'A-' | 'B+' | 'B-' | 'AB+' | 'AB-' | 'O+' | 'O-';
+  contact: string;
+  email?: string;
+  address: string;
+  lastDonationDate?: string;
+  totalDonations: number;
+  status: 'Active' | 'Inactive' | 'Deferred';
+  medicalConditions?: string[];
+  medications?: string[];
+  createdAt: string;
+}
+
+export interface BloodRequest {
+  id: string;
+  patientId: string;
+  patientName: string;
+  bloodGroup: 'A+' | 'A-' | 'B+' | 'B-' | 'AB+' | 'AB-' | 'O+' | 'O-';
+  unitsRequired: number;
+  urgency: 'Routine' | 'Urgent' | 'Emergency';
+  department: string;
+  doctor: string;
+  status: 'Pending' | 'Approved' | 'Fulfilled' | 'Cancelled';
+  requestDate: string;
+  requiredDate: string;
+  crossMatchStatus?: 'Pending' | 'Compatible' | 'Incompatible';
+  notes?: string;
+  fulfilledDate?: string;
+  fulfilledUnits?: number;
+}
+
 export interface Department {
   id: string;
   name: string;

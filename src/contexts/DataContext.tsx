@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, ReactNode } from 'react';
-import { Patient, Appointment, Invoice, UrgencyLevel, InventoryItem, Ambulance, Doctor, Task, Bed, Notice, LabTestRequest, RadiologyRequest, Referral, MedicalCertificate, ResearchTrial, MaternityPatient, QueueItem } from '../../types';
+import { Patient, Appointment, Invoice, UrgencyLevel, InventoryItem, Ambulance, Doctor, Task, Bed, Notice, LabTestRequest, RadiologyRequest, Referral, MedicalCertificate, ResearchTrial, MaternityPatient, QueueItem, BloodUnit, BloodBag, BloodDonor, BloodRequest } from '../../types';
 
 interface DataContextType {
   patients: Patient[];
@@ -18,7 +18,15 @@ interface DataContextType {
   researchTrials: ResearchTrial[];
   maternityPatients: MaternityPatient[];
   opdQueue: QueueItem[];
+  bloodUnits: BloodUnit[];
+  bloodBags: BloodBag[];
+  bloodDonors: BloodDonor[];
+  bloodRequests: BloodRequest[];
   addPatient: (patient: Patient) => void;
+  updatePatient: (id: string, patient: Partial<Patient>) => void;
+  deletePatient: (id: string) => void;
+  archivePatient: (id: string) => void;
+  restorePatient: (id: string) => void;
   addAppointment: (appointment: Appointment) => void;
   addInvoice: (invoice: Invoice) => void;
   addInventoryItem: (item: InventoryItem) => void;
@@ -35,6 +43,18 @@ interface DataContextType {
   addResearchTrial: (trial: ResearchTrial) => void;
   addMaternityPatient: (patient: MaternityPatient) => void;
   addToQueue: (item: QueueItem) => void;
+  updateQueueItem: (id: string, updates: Partial<QueueItem>) => void;
+  // Blood Bank CRUD
+  addBloodUnit: (unit: BloodUnit) => void;
+  updateBloodUnit: (id: string, updates: Partial<BloodUnit>) => void;
+  addBloodBag: (bag: BloodBag) => void;
+  updateBloodBag: (id: string, updates: Partial<BloodBag>) => void;
+  deleteBloodBag: (id: string) => void;
+  addBloodDonor: (donor: BloodDonor) => void;
+  updateBloodDonor: (id: string, updates: Partial<BloodDonor>) => void;
+  deleteBloodDonor: (id: string) => void;
+  addBloodRequest: (request: BloodRequest) => void;
+  updateBloodRequest: (id: string, updates: Partial<BloodRequest>) => void;
   getStats: () => {
     totalPatients: number;
     totalAppointments: number;
@@ -150,6 +170,43 @@ const INITIAL_QUEUE: QueueItem[] = [
     { id: '3', tokenNumber: 103, patientName: 'Bob Brown', doctorName: 'Dr. Sarah Chen', department: 'Cardiology', status: 'Waiting', waitTime: '30m' },
 ];
 
+// Blood Bank Initial Data
+const INITIAL_BLOOD_UNITS: BloodUnit[] = [
+    { id: 'BU-001', group: 'A+', bags: 12, status: 'Adequate' },
+    { id: 'BU-002', group: 'A-', bags: 3, status: 'Low' },
+    { id: 'BU-003', group: 'B+', bags: 15, status: 'Adequate' },
+    { id: 'BU-004', group: 'B-', bags: 2, status: 'Critical' },
+    { id: 'BU-005', group: 'O+', bags: 20, status: 'Adequate' },
+    { id: 'BU-006', group: 'O-', bags: 4, status: 'Low' },
+    { id: 'BU-007', group: 'AB+', bags: 8, status: 'Adequate' },
+    { id: 'BU-008', group: 'AB-', bags: 1, status: 'Critical' },
+];
+
+const INITIAL_BLOOD_BAGS: BloodBag[] = [
+    { id: 'BB-001', bloodGroup: 'A+', donorId: 'D-001', donorName: 'John Smith', collectionDate: '2024-01-15', expiryDate: '2024-02-15', volume: 450, status: 'Available', location: 'Freezer A-1' },
+    { id: 'BB-002', bloodGroup: 'A+', donorId: 'D-002', donorName: 'Mary Johnson', collectionDate: '2024-01-16', expiryDate: '2024-02-16', volume: 450, status: 'Available', location: 'Freezer A-1' },
+    { id: 'BB-003', bloodGroup: 'B+', donorId: 'D-003', donorName: 'Robert Brown', collectionDate: '2024-01-14', expiryDate: '2024-02-14', volume: 450, status: 'Reserved', location: 'Freezer B-1' },
+    { id: 'BB-004', bloodGroup: 'O-', donorId: 'D-004', donorName: 'Sarah Wilson', collectionDate: '2024-01-17', expiryDate: '2024-02-17', volume: 450, status: 'Available', location: 'Freezer O-1' },
+    { id: 'BB-005', bloodGroup: 'O+', donorId: 'D-005', donorName: 'Michael Davis', collectionDate: '2024-01-10', expiryDate: '2024-02-10', volume: 450, status: 'Available', location: 'Freezer O-1' },
+    { id: 'BB-006', bloodGroup: 'AB+', donorId: 'D-006', donorName: 'Emily Chen', collectionDate: '2024-01-18', expiryDate: '2024-02-18', volume: 450, status: 'Available', location: 'Freezer AB-1' },
+];
+
+const INITIAL_BLOOD_DONORS: BloodDonor[] = [
+    { id: 'D-001', name: 'John Smith', age: 32, gender: 'Male', bloodGroup: 'A+', contact: '555-0101', email: 'john.smith@email.com', address: '123 Main St, City', lastDonationDate: '2024-01-15', totalDonations: 5, status: 'Active', createdAt: '2023-06-15' },
+    { id: 'D-002', name: 'Mary Johnson', age: 28, gender: 'Female', bloodGroup: 'A+', contact: '555-0102', email: 'mary.j@email.com', address: '456 Oak Ave, Town', lastDonationDate: '2024-01-16', totalDonations: 3, status: 'Active', createdAt: '2023-08-20' },
+    { id: 'D-003', name: 'Robert Brown', age: 45, gender: 'Male', bloodGroup: 'B+', contact: '555-0103', email: 'rbrown@email.com', address: '789 Pine Rd, Village', lastDonationDate: '2024-01-14', totalDonations: 8, status: 'Active', createdAt: '2022-01-10' },
+    { id: 'D-004', name: 'Sarah Wilson', age: 35, gender: 'Female', bloodGroup: 'O-', contact: '555-0104', email: 'swilson@email.com', address: '321 Elm St, City', lastDonationDate: '2024-01-17', totalDonations: 12, status: 'Active', createdAt: '2021-03-22' },
+    { id: 'D-005', name: 'Michael Davis', age: 40, gender: 'Male', bloodGroup: 'O+', contact: '555-0105', email: 'mdavis@email.com', address: '654 Cedar Ln, Town', lastDonationDate: '2024-01-10', totalDonations: 6, status: 'Active', createdAt: '2022-11-05' },
+    { id: 'D-006', name: 'Emily Chen', age: 26, gender: 'Female', bloodGroup: 'AB+', contact: '555-0106', email: 'echen@email.com', address: '987 Birch Dr, City', lastDonationDate: '2024-01-18', totalDonations: 2, status: 'Active', createdAt: '2023-09-12' },
+    { id: 'D-007', name: 'David Lee', age: 50, gender: 'Male', bloodGroup: 'B-', contact: '555-0107', email: 'dlee@email.com', address: '147 Maple Way, Village', lastDonationDate: '2023-12-01', totalDonations: 15, status: 'Deferred', medicalConditions: ['High blood pressure'], createdAt: '2020-05-18' },
+];
+
+const INITIAL_BLOOD_REQUESTS: BloodRequest[] = [
+    { id: 'BR-001', patientId: 'P-102', patientName: 'Michael Chen', bloodGroup: 'B-', unitsRequired: 2, urgency: 'Emergency', department: 'ICU', doctor: 'Dr. Sarah Chen', status: 'Pending', requestDate: '2024-01-20', requiredDate: '2024-01-20', crossMatchStatus: 'Pending', notes: 'Cardiac surgery scheduled' },
+    { id: 'BR-002', patientId: 'P-108', patientName: 'Lisa Anderson', bloodGroup: 'A+', unitsRequired: 1, urgency: 'Routine', department: 'Surgery', doctor: 'Dr. Michael Ross', status: 'Approved', requestDate: '2024-01-19', requiredDate: '2024-01-22', crossMatchStatus: 'Compatible' },
+    { id: 'BR-003', patientId: 'P-109', patientName: 'James Taylor', bloodGroup: 'O-', unitsRequired: 3, urgency: 'Urgent', department: 'Emergency', doctor: 'Dr. Emily House', status: 'Fulfilled', requestDate: '2024-01-18', requiredDate: '2024-01-18', crossMatchStatus: 'Compatible', fulfilledDate: '2024-01-18', fulfilledUnits: 3 },
+];
+
 export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [patients, setPatients] = useState<Patient[]>(INITIAL_PATIENTS);
   const [appointments, setAppointments] = useState<Appointment[]>(INITIAL_APPOINTMENTS);
@@ -167,9 +224,29 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [researchTrials, setResearchTrials] = useState<ResearchTrial[]>(INITIAL_TRIALS);
   const [maternityPatients, setMaternityPatients] = useState<MaternityPatient[]>(INITIAL_MOMS);
   const [opdQueue, setOpdQueue] = useState<QueueItem[]>(INITIAL_QUEUE);
+  const [bloodUnits, setBloodUnits] = useState<BloodUnit[]>(INITIAL_BLOOD_UNITS);
+  const [bloodBags, setBloodBags] = useState<BloodBag[]>(INITIAL_BLOOD_BAGS);
+  const [bloodDonors, setBloodDonors] = useState<BloodDonor[]>(INITIAL_BLOOD_DONORS);
+  const [bloodRequests, setBloodRequests] = useState<BloodRequest[]>(INITIAL_BLOOD_REQUESTS);
 
   const addPatient = (patient: Patient) => {
     setPatients(prev => [patient, ...prev]);
+  };
+
+  const updatePatient = (id: string, updates: Partial<Patient>) => {
+    setPatients(prev => prev.map(p => p.id === id ? { ...p, ...updates } : p));
+  };
+
+  const deletePatient = (id: string) => {
+    setPatients(prev => prev.filter(p => p.id !== id));
+  };
+
+  const archivePatient = (id: string) => {
+    setPatients(prev => prev.map(p => p.id === id ? { ...p, urgency: UrgencyLevel.LOW, condition: `Archived: ${p.condition}` } : p));
+  };
+
+  const restorePatient = (id: string) => {
+    setPatients(prev => prev.map(p => p.id === id ? { ...p, condition: p.condition.replace('Archived: ', '') } : p));
   };
 
   const addAppointment = (appointment: Appointment) => {
@@ -236,6 +313,51 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     setOpdQueue(prev => [item, ...prev]);
   };
 
+  const updateQueueItem = (id: string, updates: Partial<QueueItem>) => {
+    setOpdQueue(prev => prev.map(q => q.id === id ? { ...q, ...updates } : q));
+  };
+
+  // Blood Bank CRUD Functions
+  const addBloodUnit = (unit: BloodUnit) => {
+    setBloodUnits(prev => [unit, ...prev]);
+  };
+
+  const updateBloodUnit = (id: string, updates: Partial<BloodUnit>) => {
+    setBloodUnits(prev => prev.map(u => u.id === id ? { ...u, ...updates } : u));
+  };
+
+  const addBloodBag = (bag: BloodBag) => {
+    setBloodBags(prev => [bag, ...prev]);
+  };
+
+  const updateBloodBag = (id: string, updates: Partial<BloodBag>) => {
+    setBloodBags(prev => prev.map(b => b.id === id ? { ...b, ...updates } : b));
+  };
+
+  const deleteBloodBag = (id: string) => {
+    setBloodBags(prev => prev.filter(b => b.id !== id));
+  };
+
+  const addBloodDonor = (donor: BloodDonor) => {
+    setBloodDonors(prev => [donor, ...prev]);
+  };
+
+  const updateBloodDonor = (id: string, updates: Partial<BloodDonor>) => {
+    setBloodDonors(prev => prev.map(d => d.id === id ? { ...d, ...updates } : d));
+  };
+
+  const deleteBloodDonor = (id: string) => {
+    setBloodDonors(prev => prev.filter(d => d.id !== id));
+  };
+
+  const addBloodRequest = (request: BloodRequest) => {
+    setBloodRequests(prev => [request, ...prev]);
+  };
+
+  const updateBloodRequest = (id: string, updates: Partial<BloodRequest>) => {
+    setBloodRequests(prev => prev.map(r => r.id === id ? { ...r, ...updates } : r));
+  };
+
   const getStats = () => {
     const totalPatients = patients.length;
     const totalAppointments = appointments.filter(a => a.status !== 'Cancelled').length;
@@ -268,7 +390,15 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       researchTrials,
       maternityPatients,
       opdQueue,
+      bloodUnits,
+      bloodBags,
+      bloodDonors,
+      bloodRequests,
       addPatient,
+      updatePatient,
+      deletePatient,
+      archivePatient,
+      restorePatient,
       addAppointment,
       addInvoice,
       addInventoryItem,
@@ -285,6 +415,17 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       addResearchTrial,
       addMaternityPatient,
       addToQueue,
+      updateQueueItem,
+      addBloodUnit,
+      updateBloodUnit,
+      addBloodBag,
+      updateBloodBag,
+      deleteBloodBag,
+      addBloodDonor,
+      updateBloodDonor,
+      deleteBloodDonor,
+      addBloodRequest,
+      updateBloodRequest,
       getStats
     }}>
       {children}
